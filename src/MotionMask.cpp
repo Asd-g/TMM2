@@ -34,11 +34,11 @@ proc_c(uint8_t* dqp, const uint8_t* mqp0, const uint8_t* mqp1,
        const int dpitch, const int spitch0, const int spitch1, const int width,
        const int height, const int8_t*, const int* mlut) noexcept
 {
-    const uint8_t* mhp0 = mqp0 + spitch0 * height;
-    const uint8_t* srcp0 = mhp0 + spitch0 * height;
-    const uint8_t* mhp1 = mqp1 + spitch1 * height;
-    const uint8_t* srcp1 = mhp1 + spitch1 * height;
-    uint8_t* dhp = dqp + dpitch * height;
+    const uint8_t* mhp0 = mqp0 + static_cast<int64_t>(spitch0) * height;
+    const uint8_t* srcp0 = mhp0 + static_cast<int64_t>(spitch0) * height;
+    const uint8_t* mhp1 = mqp1 + static_cast<int64_t>(spitch1) * height;
+    const uint8_t* srcp1 = mhp1 + static_cast<int64_t>(spitch1) * height;
+    uint8_t* dhp = dqp + static_cast<int64_t>(dpitch) * height;
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
@@ -70,11 +70,11 @@ proc_simd(uint8_t* dqp, const uint8_t* mqp0, const uint8_t* mqp1,
           const int width, const int height, const int8_t* params,
           const int*) noexcept
 {
-    const uint8_t* mhp0 = mqp0 + spitch0 * height;
-    const uint8_t* srcp0 = mhp0 + spitch0 * height;
-    const uint8_t* mhp1 = mqp1 + spitch1 * height;
-    const uint8_t* srcp1 = mhp1 + spitch1 * height;
-    uint8_t* dhp = dqp + dpitch * height;
+    const uint8_t* mhp0 = mqp0 + static_cast<int64_t>(spitch0) * height;
+    const uint8_t* srcp0 = mhp0 + static_cast<int64_t>(spitch0) * height;
+    const uint8_t* mhp1 = mqp1 + static_cast<int64_t>(spitch1) * height;
+    const uint8_t* srcp1 = mhp1 + static_cast<int64_t>(spitch1) * height;
+    uint8_t* dhp = dqp + static_cast<int64_t>(dpitch) * height;
 
     const V nt = set1<V>(params[0]);
     const V minth = set1<V>(params[1]);
@@ -115,7 +115,7 @@ MotionMask::MotionMask(PClip tm, int minth, int maxth, int nt, int d,
     params[1] = minth;
     params[2] = maxth;
 
-    if (arch == NO_SIMD) {
+    if (arch == arch_t::NO_SIMD) {
         mlut.resize(256);
         for (int i = 0; i < 256; ++i) {
             mlut[i] = clamp(i + nt, minth, maxth);
@@ -123,9 +123,9 @@ MotionMask::MotionMask(PClip tm, int minth, int maxth, int nt, int d,
     }
     switch (arch) {
 #if defined(__AVX2__)
-    case USE_AVX2: proc = proc_simd<__m256i>; break;
+    case arch_t::USE_AVX2: proc = proc_simd<__m256i>; break;
 #endif
-    case USE_SSE2: proc = proc_simd<__m128i>; break;
+    case arch_t::USE_SSE2: proc = proc_simd<__m128i>; break;
     default:proc = proc_c; 
     }
 }

@@ -33,16 +33,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define NOGDI
 #include <windows.h>
 #include <avisynth.h>
+#include <stdexcept>
 
 
-#define TMM2_VERSION "0.1.2"
+#define TMM2_VERSION "0.1.3"
+#define __AVX2__
 
 
 
 typedef IScriptEnvironment ise_t;
 
 
-enum arch_t {
+enum class arch_t {
     NO_SIMD,
     USE_SSE2,
     USE_AVX2,
@@ -54,9 +56,10 @@ protected:
     const int planes[3] = { PLANAR_Y, PLANAR_U, PLANAR_V };
     const size_t align;
     int numPlanes;
+
 public:
     GVFmod(PClip c, arch_t a) :
-        GenericVideoFilter(c), align(a == USE_AVX2 ? 32 : 16)
+        GenericVideoFilter(c), align(a == arch_t::USE_AVX2 ? 32 : 16)
     {
         numPlanes = vi.IsY8() ? 1 : 3;
     }
@@ -113,6 +116,7 @@ struct AndBuff {
     uint8_t* am0;
     uint8_t* am1;
     const int pitch;
+    bool has_at_least_v8;
     AndBuff(int width, int height, size_t align, bool is_plus, ise_t* e);
     ~AndBuff();
 };

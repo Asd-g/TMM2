@@ -105,7 +105,7 @@ BuildMM::BuildMM(PClip tf, PClip bf, int m, int o, int f, int l, int mtype,
     for (int p = 0; p < numPlanes; ++p) {
         int plane = planes[p];
         memset(black->GetWritePtr(plane), 0,
-               black->GetPitch(plane) * black->GetHeight(plane));
+            static_cast<int64_t>(black->GetPitch(plane)) * black->GetHeight(plane));
     }
 
     nfSrc = vi.num_frames - 2;
@@ -118,11 +118,11 @@ BuildMM::BuildMM(PClip tf, PClip bf, int m, int o, int f, int l, int mtype,
 
     gvlut.resize(length, 2);
     gvlut[0] = 1;
-    gvlut[length - 1] = 4;
+    gvlut[static_cast<int64_t>(length) - 1] = 4;
 
     vlut = vluts[mtype];
     for (int i = 0; i < 2; ++i) {
-        const int* tmmlut = tmmlut16[order] + i * 4;
+        const int* tmmlut = tmmlut16[order] + static_cast<int64_t>(i) * 4;
         for (int j = 0; j < 64; ++j) {
             tmmlutf[i][j] = tmmlut[vlut[j]];
         }
@@ -146,9 +146,9 @@ struct BMMBuffer {
     BMMBuffer(const int ocount, const int ccount, const int length,
               const int num_tops)
     {
-        srcs.resize(ocount + ccount);
-        intVals.resize(ocount + ccount + 4 * length - 2);
-        ptrs.resize(2 * ocount + ccount);
+        srcs.resize(static_cast<int64_t>(ocount) + ccount);
+        intVals.resize(static_cast<int64_t>(ocount) + ccount + 4 * static_cast<int64_t>(length) - 2);
+        ptrs.resize(2 * static_cast<int64_t>(ocount) + ccount);
 
         tops = srcs.data();
         btms = tops + num_tops;
@@ -176,7 +176,7 @@ PVideoFrame __stdcall BuildMM::GetFrame(int n, ise_t* env)
     int* opitch = b.intVals.data();
     int* cpitch = opitch + ocount;
     int* plut0 = cpitch + ccount;
-    int* plut1 = plut0 + 2 * length - 1;
+    int* plut1 = plut0 + 2 * static_cast<int64_t>(length) - 1;
 
     const uint8_t** srcp0 = b.ptrs.data();
     const uint8_t** srcp1 = srcp0 + ocount;
@@ -214,14 +214,14 @@ PVideoFrame __stdcall BuildMM::GetFrame(int n, ise_t* env)
         const int height = dst->GetHeight(plane);
 
         for (int i = !ft; i < height; i += 2) {
-            memset(dstp + dpitch * i, 10, width);
+            memset(dstp + static_cast<int64_t>(dpitch) * i, 10, width);
         }
-        dstp += dpitch * ft;
+        dstp += static_cast<int64_t>(dpitch) * ft;
 
         for (int i = 0; i < ocount; ++i) {
             opitch[i] = oclips[i]->GetPitch(plane);
             srcp0[i] = oclips[i]->GetReadPtr(plane);
-            srcp2[i] = srcp0[i] + opitch[i] * ft;
+            srcp2[i] = srcp0[i] + static_cast<int64_t>(opitch[i]) * ft;
         }
         for (int i = 0; i < ccount; ++i) {
             srcp1[i] = cclips[i]->GetReadPtr(plane);
@@ -264,15 +264,15 @@ PVideoFrame __stdcall BuildMM::GetFrame(int n, ise_t* env)
                 }
                 dstp[x] = tmmlut[val];
             }
-            dstp += dpitch * 2;
+            dstp += static_cast<int64_t>(dpitch) * 2;
             for (int i = 0; i < ccount; ++i) {
                 srcp1[i] += cpitch[i];
             }
             int y0 = y == 0 ? 0 : 1;
             int y1 = y == height - 3 ? 0 : 1;
             for (int i = 0; i < ocount; ++i) {
-                srcp0[i] += opitch[i] * y0;
-                srcp2[i] += opitch[i] * y1;
+                srcp0[i] += static_cast<int64_t>(opitch[i]) * y0;
+                srcp2[i] += static_cast<int64_t>(opitch[i]) * y1;
             }
         }
     }

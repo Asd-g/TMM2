@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "proc_thmask.h"
 
 
-
 static const proc_thmask functions[] = {
     proc_c<0>, proc_c<1>, proc_c<2>, proc_c<3>, proc_c<4>, proc_c<5>,
     // template <typename V, int TTYPE, int HS, int VS>
@@ -81,11 +80,11 @@ ThreshMask(PClip c, int ttype, int mtql, int mthl, int mtqc, int mthc,
     vi.height *= 3;
 
     for (int i = 0; i < 3; ++i) {
-        if (arch == NO_SIMD) {
+        if (arch == arch_t::NO_SIMD) {
             proc[i] = functions[ttype];
             continue;
         }
-        int idx = arch == USE_SSE2 ? 6 : 30;
+        int idx = arch == arch_t::USE_SSE2 ? 6 : 30;
         idx += hs[i] * 12;
         idx += vs[i] == 2 ? 6 : 0;
         proc[i] = functions[idx + ttype];
@@ -121,23 +120,23 @@ PVideoFrame __stdcall ThreshMask::GetFrame(int n, ise_t* env)
 
         uint8_t* dstp = dst->GetWritePtr(plane);
 
-        mirror_copy(dstp + pitch * height * 2, pitch, src->GetReadPtr(plane),
+        mirror_copy(dstp + static_cast<int64_t>(pitch) * height * 2, pitch, src->GetReadPtr(plane),
                     src->GetPitch(plane), width, height);
 
-        const uint8_t* srcp = dstp + pitch * height * 2;
+        const uint8_t* srcp = dstp + static_cast<int64_t>(pitch) * height * 2;
 
         if (mtq[p] > -1 && mth[p] > -1) {
-            memset(dstp, mtq[p], pitch * height);
-            memset(dstp + pitch * height, mth[p], pitch* height);
+            memset(dstp, mtq[p], static_cast<int64_t>(pitch) * height);
+            memset(dstp + static_cast<int64_t>(pitch) * height, mth[p], static_cast<int64_t>(pitch)* height);
             continue;
         }
 
         proc[p](dstp, srcp, pitch, width, height, hs[p], vs[p]);
 
         if (mtq[p] > -1) {
-            memset(dstp, mtq[p], pitch * height);
+            memset(dstp, mtq[p], static_cast<int64_t>(pitch) * height);
         } else if (mth[p] > -1) {
-            memset(dstp + pitch * height, mth[p], pitch * height);
+            memset(dstp + static_cast<int64_t>(pitch) * height, mth[p], static_cast<int64_t>(pitch) * height);
         }
     }
 

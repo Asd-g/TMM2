@@ -1,8 +1,8 @@
 TMM/*
-vs2015/.vs/*
-vs2015/Debug/*
-vs2015/Release/*
-vs2015/x64/*
+build/.vs/*
+build/Debug/*
+build/Release/*
+build/x64/*
 archives/*
 *.opendb
 *.db

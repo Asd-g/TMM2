@@ -172,32 +172,35 @@ combine_masks_simd(uint8_t* dstp, const uint8_t* sqp, const uint8_t* shp,
 
 
 AndBuff::AndBuff(int width, int height, size_t align, bool is_plus, ise_t* e) :
-    pitch((width + 2 + align - 1) & ~(align - 1)), env(e), isPlus(is_plus)
+    pitch((static_cast<int64_t>(width) + 2 + align - 1) & ~(align - 1)), env(e), isPlus(is_plus)
 {
-    size_t size = pitch * (height * 2 + 1);
-    if (isPlus) {
-        orig = static_cast<IScriptEnvironment2*>(
-            env)->Allocate(size, align, AVS_POOLED_ALLOC);
-    } else {
+    size_t size = pitch * (static_cast<int64_t>(height) * 2 + 1);
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
+    if (has_at_least_v8) orig = static_cast<IScriptEnvironment*>(
+        env)->Allocate(size, align, AVS_POOLED_ALLOC);
+    else {
         orig = _mm_malloc(size, align);
     }
     am0 = reinterpret_cast<uint8_t*>(orig) + pitch;
-    am1 = am0 + pitch * height;
+    am1 = am0 + static_cast<int64_t>(pitch) * height;
 }
 
 AndBuff::~AndBuff()
 {
-    if (isPlus) {
-        static_cast<IScriptEnvironment2*>(env)->Free(orig);
-    } else {
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
+    if (has_at_least_v8) static_cast<IScriptEnvironment*>(env)->Free(orig);
+    else {
         _mm_free(orig);
     }
     orig = nullptr;
 }
 
-
 CreateMM::CreateMM(PClip mm1, PClip mm2, int _cstr, arch_t arch, bool ip) :
-    GVFmod(mm1, arch), mmask2(mm2), cstr(_cstr), simd(arch != NO_SIMD),
+    GVFmod(mm1, arch), mmask2(mm2), cstr(_cstr), simd(arch != arch_t::NO_SIMD),
     isPlus(ip), abuff(nullptr)
 {
     vi.height /= 2;
@@ -209,12 +212,12 @@ CreateMM::CreateMM(PClip mm1, PClip mm2, int _cstr, arch_t arch, bool ip) :
 
     switch (arch) {
 #if defined(__AVX2__)
-    case USE_AVX2:
+    case arch_t::USE_AVX2:
         and_masks = and_masks_simd<__m256i>;
         combine_masks = combine_masks_simd<__m256i>;
         break;
 #endif
-    case USE_SSE2:
+    case arch_t::USE_SSE2:
         and_masks = and_masks_simd<__m128i>;
         combine_masks = combine_masks_simd<__m128i>;
         break;
