@@ -65,9 +65,13 @@ static const proc_thmask functions[] = {
 
 ThreshMask::
 ThreshMask(PClip c, int ttype, int mtql, int mthl, int mtqc, int mthc,
-           arch_t arch) :
+           arch_t arch, ise_t* env) :
     GVFmod(c, arch)
 {
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
+
     mtq[0] = mtql; mtq[1] = mtq[2] = mtqc;
     mth[0] = mthl; mth[1] = mth[2] = mthc;
 
@@ -109,7 +113,8 @@ mirror_copy(uint8_t* dstp, const int dpitch, const uint8_t* srcp,
 PVideoFrame __stdcall ThreshMask::GetFrame(int n, ise_t* env)
 {
     auto src = child->GetFrame(n, env);
-    auto dst = env->NewVideoFrame(vi, align);
+    PVideoFrame dst;
+    if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &src, align); else dst = env->NewVideoFrame(vi, align);
 
     for (int p = 0; p < numPlanes; ++p) {
         int plane = planes[p];

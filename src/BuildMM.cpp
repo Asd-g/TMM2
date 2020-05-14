@@ -88,6 +88,10 @@ BuildMM::BuildMM(PClip tf, PClip bf, int m, int o, int f, int l, int mtype,
                  arch_t arch, ise_t* env) :
      GVFmod(tf, arch), btmf(bf), mode(m), order(o), field(f), length(l)
 {
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
+
     const VideoInfo& vibf = btmf->GetVideoInfo();
     validate(vi.width != vibf.width || vi.height != vibf.height
              || vi.pixel_type != vibf.pixel_type
@@ -200,7 +204,8 @@ PVideoFrame __stdcall BuildMM::GetFrame(int n, ise_t* env)
     PVideoFrame* oclips = ft == 0 ? b.btms : b.tops;
     PVideoFrame* cclips = ft == 0 ? b.tops : b.btms;
 
-    auto dst = env->NewVideoFrame(vi);
+    PVideoFrame dst;
+    if (has_at_least_v8) dst = env->NewVideoFrameP(vi, b.tops, align); else dst = env->NewVideoFrame(vi, align);
 
     const int offo = (length & 1) ? 0 : 1;
     const int offc = !offo;

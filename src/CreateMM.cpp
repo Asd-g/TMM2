@@ -199,10 +199,14 @@ AndBuff::~AndBuff()
     orig = nullptr;
 }
 
-CreateMM::CreateMM(PClip mm1, PClip mm2, int _cstr, arch_t arch, bool ip) :
+CreateMM::CreateMM(PClip mm1, PClip mm2, int _cstr, arch_t arch, bool ip, ise_t* env) :
     GVFmod(mm1, arch), mmask2(mm2), cstr(_cstr), simd(arch != arch_t::NO_SIMD),
     isPlus(ip), abuff(nullptr)
 {
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
+
     vi.height /= 2;
 
     if (!isPlus) {
@@ -242,7 +246,8 @@ PVideoFrame __stdcall CreateMM::GetFrame(int n, ise_t* env)
     auto src2 = mmask2->GetFrame(n, env);
     auto src1 = child->GetFrame(std::min(n + 1, vi.num_frames - 1), env);
     auto src0 = child->GetFrame(n, env);
-    auto dst = env->NewVideoFrame(vi, align);
+    PVideoFrame dst;
+    if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &src0, align); else dst = env->NewVideoFrame(vi, align);
 
     uint8_t *am0, *am1;
     int bpitch;

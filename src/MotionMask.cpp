@@ -105,9 +105,13 @@ proc_simd(uint8_t* dqp, const uint8_t* mqp0, const uint8_t* mqp1,
 
 
 MotionMask::MotionMask(PClip tm, int minth, int maxth, int nt, int d,
-                       arch_t arch) :
+                       arch_t arch, ise_t* env) :
     GVFmod(tm, arch), distance(d)
 {
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
+
     vi.width -= 4;
     vi.height = (vi.height / 3) * 2;
 
@@ -137,7 +141,8 @@ PVideoFrame __stdcall MotionMask::GetFrame(int n, ise_t* env)
     PVideoFrame src1 = child->GetFrame(clamp(n + distance, 0, nf), env);
     PVideoFrame src0 = child->GetFrame(clamp(n, 0, nf), env);
 
-    PVideoFrame dst = env->NewVideoFrame(vi, align);
+    PVideoFrame dst;
+    if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &src0, align); else dst = env->NewVideoFrame(vi, align);
 
     for (int p = 0; p < numPlanes; ++p) {
         const int plane = planes[p];

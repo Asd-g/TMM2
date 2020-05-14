@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdexcept>
 
 
-#define TMM2_VERSION "0.1.3"
+#define TMM2_VERSION "0.1.4"
 #define __AVX2__
 
 
@@ -56,6 +56,7 @@ protected:
     const int planes[3] = { PLANAR_Y, PLANAR_U, PLANAR_V };
     const size_t align;
     int numPlanes;
+    bool has_at_least_v8;
 
 public:
     GVFmod(PClip c, arch_t a) :
@@ -85,7 +86,7 @@ class ThreshMask : public GVFmod {
 
 public:
     ThreshMask(PClip child, int ttype, int mtqL, int mthL, int mtqC, int mthC,
-               arch_t arch);
+               arch_t arch, ise_t* env);
     ~ThreshMask(){}
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
 };
@@ -103,7 +104,7 @@ class MotionMask : public GVFmod {
         const int height, const int8_t* params, const int* mlut);
 
 public:
-    MotionMask(PClip child, int minth, int maxth, int nt, int d, arch_t arch);
+    MotionMask(PClip child, int minth, int maxth, int nt, int d, arch_t arch, ise_t* env);
     ~MotionMask() {}
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
 };
@@ -140,7 +141,7 @@ class CreateMM : public GVFmod {
         const int cstr);
 
 public:
-    CreateMM(PClip mm1, PClip mm2, int cstr, arch_t arch, bool is_avsplus);
+    CreateMM(PClip mm1, PClip mm2, int cstr, arch_t arch, bool is_avsplus, ise_t* env);
     ~CreateMM();
     PVideoFrame __stdcall GetFrame(int n, ise_t* env);
 };

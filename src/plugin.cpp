@@ -102,23 +102,23 @@ static AVSValue __cdecl create_tmm(AVSValue args, void*, ise_t* env)
         PClip topf = env->Invoke(filter[parity], orig).AsClip();
         PClip btmf = env->Invoke(filter[!parity], orig).AsClip();
 
-        topf = new ThreshMask(topf, ttype, mtql, mthl, mtqc, mthc, arch);
-        btmf = new ThreshMask(btmf, ttype, mtql, mthl, mtqc, mthc, arch);
+        topf = new ThreshMask(topf, ttype, mtql, mthl, mtqc, mthc, arch, env);
+        btmf = new ThreshMask(btmf, ttype, mtql, mthl, mtqc, mthc, arch, env);
         topf = env->Invoke("InternalCache", topf).AsClip();
         btmf = env->Invoke("InternalCache", btmf).AsClip();
 
-        PClip topf0 = new MotionMask(topf, minth, maxth, nt, 1, arch);
+        PClip topf0 = new MotionMask(topf, minth, maxth, nt, 1, arch, env);
         topf0 = env->Invoke("InternalCache", topf0).AsClip();
-        PClip topf1 = new MotionMask(topf, minth, maxth, nt, 2, arch);
+        PClip topf1 = new MotionMask(topf, minth, maxth, nt, 2, arch, env);
 
-        PClip btmf0 = new MotionMask(topf, minth, maxth, nt, 1, arch);
+        PClip btmf0 = new MotionMask(topf, minth, maxth, nt, 1, arch, env);
         btmf0 = env->Invoke("InternalCache", btmf0).AsClip();
-        PClip btmf1 = new MotionMask(btmf, minth, maxth, nt, 2, arch);
+        PClip btmf1 = new MotionMask(btmf, minth, maxth, nt, 2, arch, env);
 
-        topf = new CreateMM(topf0, topf1, cstr, arch, is_avsplus);
+        topf = new CreateMM(topf0, topf1, cstr, arch, is_avsplus, env);
         topf = env->Invoke("InternalCache", topf).AsClip();
 
-        btmf = new CreateMM(btmf0, btmf1, cstr, arch, is_avsplus);
+        btmf = new CreateMM(btmf0, btmf1, cstr, arch, is_avsplus, env);
         btmf = env->Invoke("InternalCache", btmf).AsClip();
 
         return new BuildMM(topf, btmf, mode, order, field, length, mtype, arch, env);
