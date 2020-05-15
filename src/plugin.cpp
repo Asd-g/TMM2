@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TMM2.h"
 
 
-static inline arch_t get_arch(int opt, bool is_avsplus, ise_t* env)
+static inline arch_t get_arch(int opt, ise_t* env)
 {
     const bool has_sse2 = env->GetCPUFlags() & CPUF_SSE2;
     const bool has_avx2 = env->GetCPUFlags() & CPUF_AVX2;
@@ -36,7 +36,7 @@ static inline arch_t get_arch(int opt, bool is_avsplus, ise_t* env)
 #if !defined(__AVX2__)
     return USE_SSE2;
 #else
-    if (opt == 1 || !has_avx2 || !is_avsplus) {
+    if (opt == 1 || !has_avx2) {
         return arch_t::USE_SSE2;
     }
     return arch_t::USE_AVX2;
@@ -94,7 +94,7 @@ static AVSValue __cdecl create_tmm(AVSValue args, void*, ise_t* env)
         int maxth = clamp(args[13].AsInt(75), 0, 255);
         int cstr = clamp(args[14].AsInt(4), 0, 8);
         bool is_avsplus = env->FunctionExists("SetFilterMTMode");
-        arch_t arch = get_arch(args[15].AsInt(-1), is_avsplus, env);
+        arch_t arch = get_arch(args[15].AsInt(-1), env);
 
         orig = env->Invoke("SeparateFields", orig).AsClip();
         const char* filter[] = { "SelectEven", "SelectOdd" };

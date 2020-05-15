@@ -181,7 +181,6 @@ PARAMETERS:
 
 
 NOTE:
-    - On Avisynth2.6, AVX2 is always disabled even if you use TMM2_avx2.dll.
 
     - On Avisynth+ MT, TMM2 is set as MT_NICE_FILTER automatically.
       You don't have to set SetFilterMTMode() yourself for this filter.
@@ -192,6 +191,7 @@ NOTE:
 
 
 CHANGE LIST:
+
    v0.1.3 - (20200514)
       + Copy frame properties when available
       
