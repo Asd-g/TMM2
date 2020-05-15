@@ -1,13 +1,13 @@
 
 
-                         TMM2 v0.1  -  HELP FILE
+                         TMM2 v0.1.4  -  HELP FILE
 
 
 REQUIREMENTS:
 
       Avisyth2.6.0 / Avisynth+r2005 or later
       Windows Vista sp2 or later
-      Microsoft Visual C++ 2015 Redistributable Packages
+      Microsoft Visual C++ 2019 Redistributable Packages
 
 
 
@@ -181,8 +181,6 @@ PARAMETERS:
 
 
 NOTE:
-    - TMM2_avx2.dll is compiled with /arch:AVX2.
-
     - On Avisynth2.6, AVX2 is always disabled even if you use TMM2_avx2.dll.
 
     - On Avisynth+ MT, TMM2 is set as MT_NICE_FILTER automatically.
@@ -194,6 +192,12 @@ NOTE:
 
 
 CHANGE LIST:
+   v0.1.3 - (20200514)
+      + Copy frame properties when available
+      
+   v0.1.2 - (20200513)
+      + Add support for v8 interface.
+      + Remove /arch:AVX2 requirement for AVX2 code
 
    v0.1.1 - (2016-07-05)
       + Update avisynth.h to Avisynth+MT r2005
