@@ -36,14 +36,14 @@
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>llvm</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>llvm</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -71,8 +71,11 @@
     <IncludePath>..\..\..\AviSynthPlus\avs_core\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\..\AviSynthPlus\avs_core\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\AviSynthPlus\avs_core\include;$(IncludePath)</IncludePath>
     <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>..\..\AviSynthPlus\avs_core\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Label="LLVM" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClangClAdditionalOptions>-mavx2</ClangClAdditionalOptions>
@@ -139,13 +142,28 @@
   <ItemGroup>
     <ClCompile Include="..\src\BuildMM.cpp" />
     <ClCompile Include="..\src\CreateMM.cpp" />
+    <ClCompile Include="..\src\CreateMM_avx2.cpp">
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="..\src\CreateMM_sse2.cpp" />
+    <ClCompile Include="..\src\MoitonMask_avx2.cpp">
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="..\src\MoitonMask_sse2.cpp" />
     <ClCompile Include="..\src\MotionMask.cpp" />
     <ClCompile Include="..\src\plugin.cpp" />
+    <ClCompile Include="..\src\proc_thmask_avx2.cpp">
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="..\src\proc_thmask_sse2.cpp" />
     <ClCompile Include="..\src\ThreshMask.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\proc_thmask.h" />
     <ClInclude Include="..\src\simd.h" />
+    <ClInclude Include="..\src\simd_avx2.h" />
     <ClInclude Include="..\src\TMM2.h" />
   </ItemGroup>
   <ItemGroup>

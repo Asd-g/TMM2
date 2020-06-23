@@ -23,6 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "TMM2.h"
 
+extern void __stdcall and_masks_simd_sse2(uint8_t* dstp0, uint8_t* dstp1, const uint8_t* srcp0, const uint8_t* srcp1, const uint8_t* srcp2, const int dpitch, const int spitch0, const int spitch1, const int spitch2, const int width, const int height) noexcept;
+extern void __stdcall combine_masks_simd_sse2(uint8_t* dstp, const uint8_t* sqp, const uint8_t* shp, const int dpitch, const int spitch, const int width, const int height, const int _c) noexcept;
+extern void __stdcall and_masks_simd_avx2(uint8_t* dstp0, uint8_t* dstp1, const uint8_t* srcp0, const uint8_t* srcp1, const uint8_t* srcp2, const int dpitch, const int spitch0, const int spitch1, const int spitch2, const int width, const int height) noexcept;
+extern void __stdcall combine_masks_simd_avx2(uint8_t* dstp, const uint8_t* sqp, const uint8_t* shp, const int dpitch, const int spitch, const int width, const int height, const int _c) noexcept;
 
 static void __stdcall
 and_masks_c(uint8_t* dstp0, uint8_t* dstp1, const uint8_t* srcp0,
@@ -86,100 +90,15 @@ combine_masks_c(uint8_t* dstp, const uint8_t* sqp, const uint8_t* shp,
     }
 }
 
-
-#include "simd.h"
-
-template <typename V>
-static void __stdcall
-and_masks_simd(uint8_t* dstp0, uint8_t* dstp1, const uint8_t* srcp0,
-               const uint8_t* srcp1, const uint8_t* srcp2, const int dpitch,
-               const int spitch0, const int spitch1, const int spitch2,
-               const int width, const int height) noexcept
-{
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; x += sizeof(V)) {
-            V s0 = loada<V>(srcp0 + x);
-            V s1 = loada<V>(srcp1 + x);
-            V s2 = loada<V>(srcp2 + x);
-            stream(dstp0 + x, and3(s0, s1, s2));
-        }
-        dstp0[-1] = dstp0[1];
-        dstp0[width] = dstp0[width - 2];
-        srcp0 += spitch0;
-        srcp1 += spitch1;
-        srcp2 += spitch2;
-        dstp0 += dpitch;
-    }
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; x += sizeof(V)) {
-            V s0 = loada<V>(srcp0 + x);
-            V s1 = loada<V>(srcp1 + x);
-            V s2 = loada<V>(srcp2 + x);
-            stream(dstp1 + x, and3(s0, s1, s2));
-        }
-        dstp1[-1] = dstp1[1];
-        dstp1[width] = dstp1[width - 2];
-        srcp0 += spitch0;
-        srcp1 += spitch1;
-        srcp2 += spitch2;
-        dstp1 += dpitch;
-    }
-}
-
-
-template <typename V>
-static void __stdcall
-combine_masks_simd(uint8_t* dstp, const uint8_t* sqp, const uint8_t* shp,
-                   const int dpitch, const int spitch, const int width,
-                   const int height, const int _c) noexcept
-{
-    const uint8_t* sqp0 = sqp + spitch;
-    const uint8_t* sqp1 = sqp;
-    const uint8_t* sqp2 = sqp + spitch;
-
-    const V zero = setzero<V>();
-    const V cstr = set1<V>(static_cast<int8_t>(_c));
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; x += sizeof(V)) {
-            V count =           loadu<V>(sqp0 + x - 1);
-            count = adds(count, loada<V>(sqp0 + x));
-            count = adds(count, loadu<V>(sqp0 + x + 1));
-            count = adds(count, loadu<V>(sqp1 + x - 1));
-            V sq = loada<V>(sqp1 + x);
-            count = adds(count, loadu<V>(sqp1 + x + 1));
-            count = adds(count, loadu<V>(sqp2 + x - 1));
-            count = adds(count, loada<V>(sqp2 + x));
-            count = adds(count, loadu<V>(sqp2 + x + 1));
-
-            count = cmpeq(max(count, cstr), count);
-            sq = cmpgt(sq, zero);
-            V sh = loada<V>(shp + x);
-            sh = cmpgt(sh, zero);
-
-            V count2 = and_reg(count, sh);
-            V count3 = or_reg(count2, sq);
-
-            stream(dstp + x, count3);
-        }
-        sqp0 = sqp1;
-        sqp1 = sqp2;
-        sqp2 += y < height - 1 ? spitch: -spitch;
-        shp += spitch;
-        dstp += dpitch;
-    }
-}
-
-
-AndBuff::AndBuff(int width, int height, size_t align, bool is_plus, ise_t* e) :
-    pitch((static_cast<int64_t>(width) + 2 + align - 1) & ~(align - 1)), env(e), isPlus(is_plus)
+AndBuff::AndBuff(int width, int height, size_t align, IScriptEnvironment* e) :
+    env(e), pitch((static_cast<int64_t>(width) + 2 + align - 1) & ~(align - 1))
 {
     size_t size = pitch * (static_cast<int64_t>(height) * 2 + 1);
     has_at_least_v8 = true;
     try { env->CheckVersion(8); }
     catch (const AvisynthError&) { has_at_least_v8 = false; }
-    if (has_at_least_v8) orig = static_cast<IScriptEnvironment*>(
-        env)->Allocate(size, align, AVS_POOLED_ALLOC);
+
+    if (has_at_least_v8) orig = env->Allocate(size, align, AVS_POOLED_ALLOC);
     else {
         orig = _mm_malloc(size, align);
     }
@@ -189,41 +108,27 @@ AndBuff::AndBuff(int width, int height, size_t align, bool is_plus, ise_t* e) :
 
 AndBuff::~AndBuff()
 {
-    has_at_least_v8 = true;
-    try { env->CheckVersion(8); }
-    catch (const AvisynthError&) { has_at_least_v8 = false; }
-    if (has_at_least_v8) static_cast<IScriptEnvironment*>(env)->Free(orig);
-    else {
+    if (has_at_least_v8)
+        env->Free(orig);
+    else
         _mm_free(orig);
-    }
+
     orig = nullptr;
 }
 
-CreateMM::CreateMM(PClip mm1, PClip mm2, int _cstr, arch_t arch, bool ip, ise_t* env) :
-    GVFmod(mm1, arch), mmask2(mm2), cstr(_cstr), simd(arch != arch_t::NO_SIMD),
-    isPlus(ip), abuff(nullptr)
+CreateMM::CreateMM(PClip mm1, PClip mm2, int _cstr, arch_t arch, bool ip, IScriptEnvironment* env) :
+    GVFmod(mm1, arch, env), mmask2(mm2), cstr(_cstr), abuff(nullptr)
 {
-    has_at_least_v8 = true;
-    try { env->CheckVersion(8); }
-    catch (const AvisynthError&) { has_at_least_v8 = false; }
-
     vi.height /= 2;
 
-    if (!isPlus) {
-        abuff = new AndBuff(vi.width, vi.height, align, false, nullptr);
-        validate(!abuff, "failed to allocate buffer.");
-    }
-
     switch (arch) {
-#if defined(__AVX2__)
     case arch_t::USE_AVX2:
-        and_masks = and_masks_simd<__m256i>;
-        combine_masks = combine_masks_simd<__m256i>;
+        and_masks = and_masks_simd_avx2;
+        combine_masks = combine_masks_simd_avx2;
         break;
-#endif
     case arch_t::USE_SSE2:
-        and_masks = and_masks_simd<__m128i>;
-        combine_masks = combine_masks_simd<__m128i>;
+        and_masks = and_masks_simd_sse2;
+        combine_masks = combine_masks_simd_sse2;
         break;
     default:
         and_masks = and_masks_c;
@@ -231,17 +136,7 @@ CreateMM::CreateMM(PClip mm1, PClip mm2, int _cstr, arch_t arch, bool ip, ise_t*
     }
 }
 
-
-CreateMM::~CreateMM()
-{
-    if (!isPlus) {
-        delete abuff;
-    }
-}
-
-
-
-PVideoFrame __stdcall CreateMM::GetFrame(int n, ise_t* env)
+PVideoFrame __stdcall CreateMM::GetFrame(int n, IScriptEnvironment* env)
 {
     auto src2 = mmask2->GetFrame(n, env);
     auto src1 = child->GetFrame(std::min(n + 1, vi.num_frames - 1), env);
@@ -249,15 +144,14 @@ PVideoFrame __stdcall CreateMM::GetFrame(int n, ise_t* env)
     PVideoFrame dst;
     if (has_at_least_v8) dst = env->NewVideoFrameP(vi, &src0, align); else dst = env->NewVideoFrame(vi, align);
 
-    uint8_t *am0, *am1;
+    uint8_t* am0, * am1;
     int bpitch;
     AndBuff* b = abuff;
-    if (isPlus) {
-        b = new AndBuff(vi.width, vi.height, align, true, env);
-        if (!b || !b->orig) {
-            env->ThrowError("TMM: failed to allocate AndBuff.");
-        }
+    b = new AndBuff(vi.width, vi.height, align, env);
+    if (!b || !b->orig) {
+        env->ThrowError("TMM: failed to allocate AndBuff.");
     }
+
     am0 = b->am0; am1 = b->am1;
     bpitch = b->pitch;
 
@@ -270,17 +164,15 @@ PVideoFrame __stdcall CreateMM::GetFrame(int n, ise_t* env)
         const int dpitch = dst->GetPitch(plane);
 
         and_masks(am0, am1, src0->GetReadPtr(plane),
-                  src1->GetReadPtr(plane), src2->GetReadPtr(plane),
-                  bpitch, src0->GetPitch(plane), src1->GetPitch(plane),
-                  src2->GetPitch(plane), width, height);
+            src1->GetReadPtr(plane), src2->GetReadPtr(plane),
+            bpitch, src0->GetPitch(plane), src1->GetPitch(plane),
+            src2->GetPitch(plane), width, height);
 
         combine_masks(dstp, am0, am1, dpitch, bpitch, width,
-                      height, cstr);
+            height, cstr);
     }
 
-    if (isPlus) {
-        delete b;
-    }
+    delete b;
 
     return dst;
 }

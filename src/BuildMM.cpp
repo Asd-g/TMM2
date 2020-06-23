@@ -25,37 +25,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 static const int vluts[3][64] = {
-    0, 1, 2, 2, 3, 0, 2, 2,
+    { 0, 1, 2, 2, 3, 0, 2, 2,
     1, 1, 2, 2, 0, 1, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
     3, 0, 2, 2, 3, 3, 2, 2,
     0, 1, 2, 2, 3, 1, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
-    2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 2, 2, 2, 2 },
 
-    0, 0, 2, 2, 0, 0, 2, 2,
+    { 0, 0, 2, 2, 0, 0, 2, 2,
     0, 1, 2, 2, 0, 1, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
     0, 0, 2, 2, 3, 3, 2, 2,
     0, 1, 2, 2, 3, 1, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
-    2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 2, 2, 2, 2 },
 
-    0, 0, 0, 0, 0, 0, 0, 0,
+    { 0, 0, 0, 0, 0, 0, 0, 0,
     0, 1, 0, 1, 0, 1, 0, 1,
     0, 0, 2, 2, 0, 0, 2, 2,
     0, 1, 2, 2, 0, 1, 2, 2,
     0, 0, 0, 0, 3, 3, 3, 3,
     0, 1, 0, 1, 3, 1, 3, 1,
     0, 0, 2, 2, 3, 3, 2, 2,
-    0, 1, 2, 2, 3, 1, 2, 2,
+    0, 1, 2, 2, 3, 1, 2, 2 },
 };
 
 static const int tmmlut16[2][8] = {
-    60, 20, 50, 10, 60, 10, 40, 30,
-    60, 10, 40, 30, 60, 20, 50, 10,
+    { 60, 20, 50, 10, 60, 10, 40, 30 },
+    { 60, 10, 40, 30, 60, 20, 50, 10 },
 };
 
 
@@ -76,22 +76,13 @@ void BuildMM::setVals()
     vals[1].bstop = bn + (length - 2) / 2 - 1;
     vals[1].ocount = vals[1].tstop - vals[1].tstart + 1;
     vals[1].ccount = vals[1].bstop - vals[1].bstart + 1;
-
-    int tmax0 = std::max(vals[0].tstop, -vals[0].tstart);
-    int bmax0 = std::max(vals[0].bstop, -vals[0].bstart);
-    int tmax1 = std::max(vals[1].tstop, -vals[1].tstart);
-    int bmax1 = std::max(vals[0].tstop, -vals[0].tstart);
 }
 
 
 BuildMM::BuildMM(PClip tf, PClip bf, int m, int o, int f, int l, int mtype,
-                 arch_t arch, ise_t* env) :
-     GVFmod(tf, arch), btmf(bf), mode(m), order(o), field(f), length(l)
+                 arch_t arch, IScriptEnvironment* env) :
+     GVFmod(tf, arch, env), btmf(bf), order(o), field(f), mode(m), length(l)
 {
-    has_at_least_v8 = true;
-    try { env->CheckVersion(8); }
-    catch (const AvisynthError&) { has_at_least_v8 = false; }
-
     const VideoInfo& vibf = btmf->GetVideoInfo();
     validate(vi.width != vibf.width || vi.height != vibf.height
              || vi.pixel_type != vibf.pixel_type
@@ -135,10 +126,6 @@ BuildMM::BuildMM(PClip tf, PClip bf, int m, int o, int f, int l, int mtype,
     setVals();
 }
 
-
-BuildMM::~BuildMM() {}
-
-
 struct BMMBuffer {
     std::vector<PVideoFrame> srcs;
     std::vector<int> intVals;
@@ -161,7 +148,7 @@ struct BMMBuffer {
 
 
  
-PVideoFrame __stdcall BuildMM::GetFrame(int n, ise_t* env)
+PVideoFrame __stdcall BuildMM::GetFrame(int n, IScriptEnvironment* env)
 {
     int ft = field;
     if (mode == 1) {
@@ -186,7 +173,6 @@ PVideoFrame __stdcall BuildMM::GetFrame(int n, ise_t* env)
     const uint8_t** srcp1 = srcp0 + ocount;
     const uint8_t** srcp2 = srcp1 + ccount;
 
-    int nf = vi.num_frames - 1;
     for (int i = tstop; i >= tstart; --i) {
         if (i < 0 || i >= nfSrc) {
             b.tops[i - tstart] = black;

@@ -27,22 +27,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstdint>
 #include <algorithm>
 #include <vector>
+#include <emmintrin.h>
+#include <immintrin.h>
 #define WIN32_LEAN_AND_MEAN
 #define VC_EXTRALEAN
 #define NOMINMAX
 #define NOGDI
 #include <windows.h>
-#include <avisynth.h>
 #include <stdexcept>
+
+#include "avisynth.h"
 
 
 #define TMM2_VERSION "0.1.4"
-#define __AVX2__
-
-
-
-typedef IScriptEnvironment ise_t;
-
 
 enum class arch_t {
     NO_SIMD,
@@ -59,10 +56,14 @@ protected:
     bool has_at_least_v8;
 
 public:
-    GVFmod(PClip c, arch_t a) :
+    GVFmod(PClip c, arch_t a, IScriptEnvironment* env) :
         GenericVideoFilter(c), align(a == arch_t::USE_AVX2 ? 32 : 16)
     {
         numPlanes = vi.IsY8() ? 1 : 3;
+
+        has_at_least_v8 = true;
+        try { env->CheckVersion(8); }
+        catch (const AvisynthError&) { has_at_least_v8 = false; }
     }
     int __stdcall SetCacheHints(int cache_hints, int frame_range) override
     {
@@ -86,9 +87,8 @@ class ThreshMask : public GVFmod {
 
 public:
     ThreshMask(PClip child, int ttype, int mtqL, int mthL, int mtqC, int mthC,
-               arch_t arch, ise_t* env);
-    ~ThreshMask(){}
-    PVideoFrame __stdcall GetFrame(int n, ise_t* env);
+               arch_t arch, IScriptEnvironment* env);
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
 
 
@@ -104,29 +104,25 @@ class MotionMask : public GVFmod {
         const int height, const int8_t* params, const int* mlut);
 
 public:
-    MotionMask(PClip child, int minth, int maxth, int nt, int d, arch_t arch, ise_t* env);
-    ~MotionMask() {}
-    PVideoFrame __stdcall GetFrame(int n, ise_t* env);
+    MotionMask(PClip child, int minth, int maxth, int nt, int d, arch_t arch, IScriptEnvironment* env);
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
 
 
 struct AndBuff {
-    ise_t* env;
-    bool isPlus;
+    IScriptEnvironment* env;
     void* orig;
     uint8_t* am0;
     uint8_t* am1;
     const int pitch;
     bool has_at_least_v8;
-    AndBuff(int width, int height, size_t align, bool is_plus, ise_t* e);
+    AndBuff(int width, int height, size_t align, IScriptEnvironment* e);
     ~AndBuff();
 };
 
 class CreateMM : public GVFmod {
     PClip mmask2;
     const int cstr;
-    const bool simd;
-    const bool isPlus;
     AndBuff* abuff;
 
     void(__stdcall *and_masks)(
@@ -141,12 +137,9 @@ class CreateMM : public GVFmod {
         const int cstr);
 
 public:
-    CreateMM(PClip mm1, PClip mm2, int cstr, arch_t arch, bool is_avsplus, ise_t* env);
-    ~CreateMM();
-    PVideoFrame __stdcall GetFrame(int n, ise_t* env);
+    CreateMM(PClip mm1, PClip mm2, int cstr, arch_t arch, bool is_avsplus, IScriptEnvironment* env);
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
-
-
 
 class BuildMM : public GVFmod {
     PClip btmf;
@@ -171,9 +164,8 @@ class BuildMM : public GVFmod {
 
 public:
     BuildMM(PClip topf, PClip btmf, int mode, int order, int field, int length,
-            int mtype, arch_t arch, ise_t* env);
-    ~BuildMM();
-    PVideoFrame __stdcall GetFrame(int n, ise_t* env);
+            int mtype, arch_t arch, IScriptEnvironment* env);
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
     void setVals();
 };
 

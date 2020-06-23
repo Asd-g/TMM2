@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TMM2.h"
 
 
-static inline arch_t get_arch(int opt, ise_t* env)
+static inline arch_t get_arch(int opt, IScriptEnvironment* env)
 {
     const bool has_sse2 = env->GetCPUFlags() & CPUF_SSE2;
     const bool has_avx2 = env->GetCPUFlags() & CPUF_AVX2;
@@ -33,18 +33,14 @@ static inline arch_t get_arch(int opt, ise_t* env)
     if (opt == 0 || !has_sse2) {
         return arch_t::NO_SIMD;
     }
-#if !defined(__AVX2__)
-    return USE_SSE2;
-#else
     if (opt == 1 || !has_avx2) {
         return arch_t::USE_SSE2;
     }
     return arch_t::USE_AVX2;
-#endif
 }
 
 
-static AVSValue __cdecl create_tmm(AVSValue args, void*, ise_t* env)
+static AVSValue __cdecl create_tmm(AVSValue args, void*, IScriptEnvironment* env)
 {
     try {
         PClip orig = args[0].AsClip();
@@ -134,7 +130,7 @@ static AVSValue __cdecl create_tmm(AVSValue args, void*, ise_t* env)
 const AVS_Linkage* AVS_linkage = nullptr;
 
 extern "C" __declspec(dllexport) const char* __stdcall
-AvisynthPluginInit3(ise_t* env, const AVS_Linkage* const vectors)
+AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
 {
     AVS_linkage = vectors;
 

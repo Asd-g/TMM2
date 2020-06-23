@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "TMM2.h"
 
+extern void __stdcall proc_simd_sse2(uint8_t* dqp, const uint8_t* mqp0, const uint8_t* mqp1, const int dpitch, const int spitch0, const int spitch1, const int width, const int height, const int8_t* params, const int*) noexcept;
+extern void __stdcall proc_simd_avx2(uint8_t* dqp, const uint8_t* mqp0, const uint8_t* mqp1, const int dpitch, const int spitch0, const int spitch1, const int width, const int height, const int8_t* params, const int*) noexcept;
 
 static __forceinline int absd(int x, int y) noexcept
 {
@@ -59,59 +61,10 @@ proc_c(uint8_t* dqp, const uint8_t* mqp0, const uint8_t* mqp1,
     }
 }
 
-
-
-#include "simd.h"
-
-template <typename V>
-static void __stdcall
-proc_simd(uint8_t* dqp, const uint8_t* mqp0, const uint8_t* mqp1,
-          const int dpitch, const int spitch0, const int spitch1,
-          const int width, const int height, const int8_t* params,
-          const int*) noexcept
-{
-    const uint8_t* mhp0 = mqp0 + static_cast<int64_t>(spitch0) * height;
-    const uint8_t* srcp0 = mhp0 + static_cast<int64_t>(spitch0) * height;
-    const uint8_t* mhp1 = mqp1 + static_cast<int64_t>(spitch1) * height;
-    const uint8_t* srcp1 = mhp1 + static_cast<int64_t>(spitch1) * height;
-    uint8_t* dhp = dqp + static_cast<int64_t>(dpitch) * height;
-
-    const V nt = set1<V>(params[0]);
-    const V minth = set1<V>(params[1]);
-    const V maxth = set1<V>(params[2]);
-    const V one = set1<V>(0x01);
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; x += sizeof(V)) {
-            const V diff = absdiff(loada<V>(srcp0 + x), loada<V>(srcp1 + x));
-            V th = min(loada<V>(mqp0 + x), loada<V>(mqp1 + x));
-            th = min(max(adds(th, nt), minth), maxth);
-            stream(dqp + x, and_reg(cmple(diff, th), one));
-
-            th = min(loada<V>(mhp0 + x), loada<V>(mhp1 + x));
-            th = min(max(adds(th, nt), minth), maxth);
-            stream(dhp + x, and_reg(cmple(diff, th), one));
-        }
-        mqp0 += spitch0;
-        mhp0 += spitch0;
-        srcp0 += spitch0;
-        mqp1 += spitch1;
-        mhp1 += spitch1;
-        srcp1 += spitch1;
-        dqp += dpitch;
-        dhp += dpitch;
-    }
-}
-
-
 MotionMask::MotionMask(PClip tm, int minth, int maxth, int nt, int d,
-                       arch_t arch, ise_t* env) :
-    GVFmod(tm, arch), distance(d)
+                       arch_t arch, IScriptEnvironment* env) :
+    GVFmod(tm, arch, env), distance(d)
 {
-    has_at_least_v8 = true;
-    try { env->CheckVersion(8); }
-    catch (const AvisynthError&) { has_at_least_v8 = false; }
-
     vi.width -= 4;
     vi.height = (vi.height / 3) * 2;
 
@@ -126,16 +79,14 @@ MotionMask::MotionMask(PClip tm, int minth, int maxth, int nt, int d,
         }
     }
     switch (arch) {
-#if defined(__AVX2__)
-    case arch_t::USE_AVX2: proc = proc_simd<__m256i>; break;
-#endif
-    case arch_t::USE_SSE2: proc = proc_simd<__m128i>; break;
+    case arch_t::USE_AVX2: proc = proc_simd_avx2; break;
+    case arch_t::USE_SSE2: proc = proc_simd_sse2; break;
     default:proc = proc_c; 
     }
 }
 
 
-PVideoFrame __stdcall MotionMask::GetFrame(int n, ise_t* env)
+PVideoFrame __stdcall MotionMask::GetFrame(int n, IScriptEnvironment* env)
 {
     int nf = vi.num_frames - 1;
     PVideoFrame src1 = child->GetFrame(clamp(n + distance, 0, nf), env);
