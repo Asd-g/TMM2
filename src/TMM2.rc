@@ -14,8 +14,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,4,0
- PRODUCTVERSION 0,1,4,0
+ FILEVERSION 0,1,5,0
+ PRODUCTVERSION 0,1,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -32,10 +32,10 @@ BEGIN
         BEGIN
             VALUE "Comments", "A motion-mask for TDeint"
             VALUE "FileDescription", "TMM2 for AviSynth 2.6 / AviSynth+"
-            VALUE "FileVersion", "0.1.4"
+            VALUE "FileVersion", "0.1.5"
             VALUE "InternalName", "TMM2"
             VALUE "ProductName", "TMM2"
-            VALUE "ProductVersion", "0.1.4"
+            VALUE "ProductVersion", "0.1.5"
         END
     END
     BLOCK "VarFileInfo"

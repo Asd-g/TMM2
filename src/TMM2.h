@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "avisynth.h"
 
 
-#define TMM2_VERSION "0.1.4"
+#define TMM2_VERSION "0.1.5"
 
 enum class arch_t {
     NO_SIMD,

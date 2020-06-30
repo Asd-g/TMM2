@@ -27,15 +27,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 static inline arch_t get_arch(int opt, IScriptEnvironment* env)
 {
-    const bool has_sse2 = env->GetCPUFlags() & CPUF_SSE2;
-    const bool has_avx2 = env->GetCPUFlags() & CPUF_AVX2;
+    const bool has_sse2 = !!(env->GetCPUFlags() & CPUF_SSE2);
+    const bool has_avx2 = !!(env->GetCPUFlags() & CPUF_AVX2);
 
-    if (opt == 0 || !has_sse2) {
+    if (opt == 0 || !has_sse2)
         return arch_t::NO_SIMD;
-    }
-    if (opt == 1 || !has_avx2) {
+ 
+    if (opt == 1 || !has_avx2)
         return arch_t::USE_SSE2;
-    }
+
     return arch_t::USE_AVX2;
 }
 

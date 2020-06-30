@@ -1,6 +1,6 @@
 
 
-                         TMM2 v0.1.4  -  HELP FILE
+                         TMM2 v0.1.5  -  HELP FILE
 
 
 REQUIREMENTS:
@@ -192,12 +192,15 @@ NOTE:
 
 CHANGE LIST:
 
-   v0.1.3 - (20200514)
-      + Copy frame properties when available
+    v0.1.5 - (20200630)
+      + Fixed crash for AviSynth 2.6.
+
+   v0.1.4 - (20200514)
+      + Copy frame properties when available.
       
-   v0.1.2 - (20200513)
-      + Add support for v8 interface.
-      + Remove /arch:AVX2 requirement for AVX2 code
+   v0.1.3 - (20200513)
+      + Added support for v8 interface.
+      + Removed /arch:AVX2 requirement for AVX2 code.
 
    v0.1.1 - (2016-07-05)
       + Update avisynth.h to Avisynth+MT r2005
